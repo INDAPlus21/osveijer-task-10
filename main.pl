@@ -11,22 +11,44 @@ alive(Row, Column, BoardFileName):-
     see(BoardFileName),     % Loads the input-file
     read(Board),            % Reads the first Prolog-term from the file
     seen,                   % Closes the io-stream
-    check_alive(Row, Column, Board).
+    nth1_2d(Row, Column, Board, Stone),
+    (Stone = w; Stone = b),
+    check_alive(Row, Column, Board, Stone, []).
 
 % Checks whether the group of stones connected to
 % the stone located at (Row, Column) is alive or dead.
-check_alive(Row, Column, Board):-
+check_alive(Row, Column, Board, Firststone, Checked):-
+    % Get stone
     nth1_2d(Row, Column, Board, Stone),
-    (Stone = b; Stone = w),
-    check_adjacent(Row, Column, Board, Stone).
+    
+    % If empty square
+    (
+        Stone = e;
 
-% Checks whether adjacent places are empty or in same group
-check_adjacent(Row, Column, Board, Stone):-
-    Left is Row-1,
-    Down is Column+1,
-    Right is Row+1,
-    Up is Column-1,
-    (nth1_2d(Left, Column, Board, Stoney), (Stoney = e; Stoney = Stone -> check_alive(Left, Column, Board)));
-    (nth1_2d(Row, Up, Board, Stoney), (Stoney = e; Stoney = Stone -> check_alive(Row, Up, Board)));
-    (nth1_2d(Right, Column, Board, Stoney), (Stoney = e; Stoney = Stone -> check_alive(Right, Column, Board)));
-    (nth1_2d(Row, Down, Board, Stoney), (Stoney = e; Stoney = Stone -> check_alive(Row, Down, Board))).
+        (
+            % If in same group as first stone
+            Stone = Firststone,
+
+            % Stone has not already been checked
+            \+ (already_checked((Row,Column), Checked)),
+
+            % Set coordinates for neigbours
+            (
+                Up is (Row-1),
+                Right is (Column+1),
+                Down is (Row+1),
+                Left is (Column-1),
+                % Recursively check neigbours
+                (
+                    check_alive(Up, Column, Board, Firststone, [(Row, Column) | Checked]);
+                    check_alive(Row, Right, Board, Firststone, [(Row, Column) | Checked]);
+                    check_alive(Down, Column, Board, Firststone, [(Row, Column) | Checked]);
+                    check_alive(Row, Left, Board, Firststone, [(Row, Column) | Checked])
+                )
+            )
+        )
+    ).
+
+already_checked(Coordinate, [Head | Tail]):-
+    Coordinate = Head;
+    already_checked(Coordinate, Tail).
